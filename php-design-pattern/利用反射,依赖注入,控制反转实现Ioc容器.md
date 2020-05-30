@@ -290,7 +290,7 @@ class Ioc
 
     public function build($concrete, array $parameters)
     {
-        $reflector = new ReflectionClass($concrete);
+        $reflector = new ReflectionClass($concrete); //https://www.php.net/manual/zh/book.reflection.php
         $constructor = $reflector->getConstructor();
         if (is_null($constructor)) {
             return $reflector->newInstance();
@@ -305,11 +305,11 @@ class Ioc
     {
         $dependencies = [];
         foreach ($paramters as $paramter) {
-            $class = $paramter->getClass()->name;
+            $class = $paramter->getClass()->name; //https://www.php.net/manual/en/reflectionparameter.getclass.php
             if (is_null($class)) {
                 $dependencies[] = array_shift($parameters);
             } else {
-                $dependencies[] = $this->make($paramter->getClass()->name);
+                $dependencies[] = $this->make($class);
             }
         }
         return $dependencies;

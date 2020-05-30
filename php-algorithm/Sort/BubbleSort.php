@@ -26,7 +26,7 @@ function BubbleSort(array $container)
                 $sortedFlag = false;
             }
         }
-        if ($sortedFlag === true) { //后面的数据已成顺序结构, 无需再遍历
+        if ($sortedFlag === true) { //后面的数据已成顺序结构, 无需再遍历 (可以减少顺序化后的遍历次数)
             break;
         }
     }
