@@ -223,3 +223,107 @@ $user = $ioc->make('user');
 $user->login();
 ```
 
+**ioc支持传参改写:**
+```php
+<?php
+
+// 定义写日志的接口规范
+interface Log
+{
+    public function write();
+}
+
+// 文件记录日志
+class FileLog implements Log
+{
+    public function write()
+    {
+        echo 'file log write...' . PHP_EOL;
+    }
+}
+
+// 数据库记录日志
+class DatabaseLog implements Log
+{
+    public function write()
+    {
+        echo 'database log write...' . PHP_EOL;
+    }
+}
+
+class User
+{
+    protected $fileLog;
+    protected $time;
+    protected $account;
+
+    public function __construct(Log $log, $account, $time)
+    {
+        $this->fileLog = $log;
+        $this->time = $time;
+        $this->account = $account;
+    }
+
+    public function login()
+    {
+        echo $this->account . ' login success... at ' . $this->time . PHP_EOL;
+        $this->fileLog->write();
+    }
+}
+
+class Ioc
+{
+    public $binding = [];
+
+    public function bind($abstract, $concrete)
+    {
+        $this->binding[$abstract]['concrete'] = function ($ioc, array $parameters) use ($concrete) {
+            return $ioc->build($concrete, $parameters);
+        };
+    }
+
+    public function make($abstract, $parameters = [])
+    {
+        $concrete = $this->binding[$abstract]['concrete'];
+        return $concrete($this, $parameters);
+    }
+
+    public function build($concrete, array $parameters)
+    {
+        $reflector = new ReflectionClass($concrete); //https://www.php.net/manual/zh/book.reflection.php
+        $constructor = $reflector->getConstructor();
+        if (is_null($constructor)) {
+            return $reflector->newInstance();
+        } else {
+            $dependencies = $constructor->getParameters();
+            $instances = $this->getDependencies($dependencies, $parameters);
+            return $reflector->newInstanceArgs($instances);
+        }
+    }
+
+    protected function getDependencies($paramters, array $parameters)
+    {
+        $dependencies = [];
+        foreach ($paramters as $paramter) {
+            $class = $paramter->getClass()->name; //https://www.php.net/manual/en/reflectionparameter.getclass.php
+            if (is_null($class)) {
+                $dependencies[] = array_shift($parameters);
+            } else {
+                $dependencies[] = $this->make($class);
+            }
+        }
+        return $dependencies;
+    }
+
+}
+
+$ioc = new Ioc();
+$ioc->bind('User', 'User');
+$ioc->bind('Log', 'FileLog');
+$user = $ioc->make('User', ['123@qq.com', date('Y-m-d H:i:s')]);
+$user->login();
+
+$ioc->bind('Log', 'DatabaseLog');
+$user = $ioc->make('User', ['456@qq.com', date('Y-m-d H:i:s')]);
+$user->login();
+```
